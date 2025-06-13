@@ -1,11 +1,28 @@
-__pycache__/ 
+# Python
+__pycache__/
 *.py[cod]
 *$py.class
+*.pyc
+
+# Environments & dependencies
 venv/
-.vscode/
+.env
+*.egg-info/
+
+# Logs, dumps, data
+*.log
+*.db
+*.sqlite3
+data/
+exports/
+*.csv
+*.xlsx
+*.json
+
+# OS junk
 .DS_Store
 Thumbs.db
-*.log
-data/session_data.db
-*.pyc
-exports/
+
+# Editor/IDE settings
+.vscode/
+.idea/
