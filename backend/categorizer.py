@@ -24,7 +24,7 @@ def categorize_sessions():
 
         for row in reader:
             process_name = row["Process Name"]
-            category = category_map.get(process_name, "unknown")
+            category = category_map.get(process_name, "other")
             row["Category"] = category
             writer.writerow(row)
 

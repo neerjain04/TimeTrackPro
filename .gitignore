@@ -1,28 +1,49 @@
-# Python
+# --- Python ---
 __pycache__/
 *.py[cod]
 *$py.class
 *.pyc
-
-# Environments & dependencies
-venv/
-.env
 *.egg-info/
+venv/
 
-# Logs, dumps, data
+# --- Environment Files ---
+.env
+.env.*
+.envrc
+
+# --- Logs, dumps, data ---
 *.log
 *.db
 *.sqlite3
-data/
-exports/
+*.bak
+*.tmp
 *.csv
 *.xlsx
 *.json
+*.swp
+data/
+exports/
 
-# OS junk
+# --- Node (React/Vite) ---
+node_modules/
+dist/
+build/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.vite/
+
+# --- Dev/Script Files ---
+run.bat
+*.cover
+.pytest_cache/
+htmlcov/
+*.hypothesis/
+
+# --- OS Junk ---
 .DS_Store
 Thumbs.db
 
-# Editor/IDE settings
+# --- Editor/IDE ---
 .vscode/
 .idea/
