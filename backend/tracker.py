@@ -1,3 +1,5 @@
+# This script tracks the active window and process on a Windows machine and logs the usage data to a CSV file.
+# It captures the window title, process name, and duration of usage for each active window.
 import time
 import csv
 from datetime import datetime
@@ -8,6 +10,7 @@ import win32gui
 import win32process
 import os
 
+# This function retrieves the title of the currently active window and the name of the process associated with it.
 def get_active_window_title_and_process():
     try:
         hwnd = win32gui.GetForegroundWindow()
@@ -20,6 +23,7 @@ def get_active_window_title_and_process():
         print(f"Error getting active window: {e}")
         return None, None
 
+# This function tracks the active window and logs the usage data to a CSV file.
 def track_active_window():
     last_window = None
     last_process = None

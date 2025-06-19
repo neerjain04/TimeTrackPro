@@ -1,3 +1,5 @@
+# This script categorizes application usage sessions based on predefined categories.
+# It reads a CSV log of application usage, maps each process to a category using a JSON
 import csv
 import json
 import os
