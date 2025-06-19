@@ -1,6 +1,8 @@
  # main.py
-from backend.tracker import log_active_windows
+from backend.categorizer import categorize_sessions
+from backend.tracker import track_active_window
 
 if __name__ == "__main__":
-    log_active_windows()
+    track_active_window()
+    categorize_sessions()
 
