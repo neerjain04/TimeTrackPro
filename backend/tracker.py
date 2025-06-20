@@ -1,3 +1,6 @@
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 # This script tracks the active window and process on a Windows machine and logs the usage data to a CSV file.
 # It captures the window title, process name, and duration of usage for each active window.
 import time
@@ -97,3 +100,6 @@ def log_session(start_time, end_time, window_title, process_name, file_path):
             window_title,
             process_name
         ])
+
+if __name__ == "__main__":
+    track_active_window()
