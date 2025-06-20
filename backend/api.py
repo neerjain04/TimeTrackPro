@@ -13,9 +13,14 @@ CORS(app)  # Enable CORS so React can access this API
 @app.route("/api/data")
 def get_data():
     try:
+        date_str = request.args.get('date')
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "labeled_log.csv"))
         print(f"🔍 [Data] Trying to load CSV from: {path}")
         df = pd.read_csv(path)
+        if date_str:
+            df['Date'] = pd.to_datetime(df['Start Time']).dt.date
+            selected_date = pd.to_datetime(date_str).date()
+            df = df[df['Date'] == selected_date]
         df["Duration"] = pd.to_timedelta(df["Duration"])
         df["Duration (Minutes)"] = df["Duration"].dt.total_seconds() / 60
         # Convert Timedelta to string for JSON serialization
@@ -29,10 +34,14 @@ def get_data():
 def get_usage():
     print("🔄 /api/usage called")
     try:
+        date_str = request.args.get('date')
         print("📂 Reading CSV file...")
         df = pd.read_csv(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "labeled_log.csv")))
+        if date_str:
+            df['Date'] = pd.to_datetime(df['Start Time']).dt.date
+            selected_date = pd.to_datetime(date_str).date()
+            df = df[df['Date'] == selected_date]
         print("✅ CSV loaded")
-
         df["Duration"] = pd.to_timedelta(df["Duration"])
         df["Duration (Minutes)"] = df["Duration"].dt.total_seconds() / 60
         category_summary = df.groupby("Category")["Duration (Minutes)"].sum().reset_index()
@@ -51,14 +60,17 @@ def get_timesheet():
         date_str = datetime.now().strftime('%Y-%m-%d')
     path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", f"labeled_log_{date_str}.csv"))
     if not os.path.exists(path):
-        # fallback to old file for today only
-        if date_str == datetime.now().strftime('%Y-%m-%d'):
-            path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "labeled_log.csv"))
+        # fallback to main file for any date
+        path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "labeled_log.csv"))
     sessions = []
     if not os.path.exists(path):
         return jsonify([])
     df = pd.read_csv(path)
-    # Group consecutive 'Work' sessions, track indices
+    # Filter to only rows matching the selected date
+    df['Date'] = pd.to_datetime(df['Start Time']).dt.date
+    selected_date = pd.to_datetime(date_str).date()
+    df = df[df['Date'] == selected_date]
+    # Group consecutive 'Work' sessions, track indices, but only within the same day
     grouped = []
     prev_type = None
     group_start = None
@@ -70,6 +82,7 @@ def get_timesheet():
         start = row['Start Time']
         end = row['End Time']
         duration = pd.to_timedelta(row['Duration']) if 'Duration' in row else pd.Timedelta(0)
+        # Only merge if same type and same day
         if label == 'Work':
             if prev_type == 'Work' and group_end == start:
                 group_end = end
@@ -99,13 +112,13 @@ def get_timesheet():
                     'indices': group_indices.copy()
                 })
             grouped.append({
-                'type': 'Meal',
+                'type': label,
                 'start_time': start,
                 'end_time': end,
                 'duration': str(duration),
                 'indices': [idx]
             })
-            prev_type = 'Meal'
+            prev_type = label
             group_start = None
             group_end = None
             group_duration = pd.Timedelta(0)
@@ -177,7 +190,11 @@ def api_stop_tracking():
         for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
             if proc.info['cmdline'] and 'tracker.py' in proc.info['cmdline']:
                 proc.terminate()
-        return jsonify({"success": True, "message": "Tracking stopped"})
+        # After stopping tracking, run categorizer in the background to sync labeled_log.csv
+        categorizer_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend", "categorizer.py"))
+        python_exec = sys.executable
+        subprocess.Popen([python_exec, categorizer_path])
+        return jsonify({"success": True, "message": "Tracking stopped and logs syncing in background"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
@@ -189,45 +206,69 @@ def get_timesheet_raw():
         date_str = datetime.now().strftime('%Y-%m-%d')
     path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", f"labeled_log_{date_str}.csv"))
     if not os.path.exists(path):
-        if date_str == datetime.now().strftime('%Y-%m-%d'):
-            path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "labeled_log.csv"))
+        # fallback to main file for any date
+        path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "labeled_log.csv"))
     if not os.path.exists(path):
         return jsonify([])
     df = pd.read_csv(path)
-    # Merge consecutive 'Work' rows if gap < 2 min, and filter out short sessions
+    # Filter to only rows matching the selected date
+    df['Date'] = pd.to_datetime(df['Start Time']).dt.date
+    selected_date = pd.to_datetime(date_str).date()
+    df = df[df['Date'] == selected_date]
+    # Sort by start time to ensure correct merging
+    df = df.sort_values(by='Start Time')
     merged = []
-    prev = None
+    work_block = None
     for idx, row in df.reset_index().iterrows():
-        label = 'Meal' if str(row.get('Category', '')).lower() == 'meal' else 'Work'
+        category = str(row.get('Category', '')).strip().lower()
         start = pd.to_datetime(row['Start Time'])
         end = pd.to_datetime(row['End Time'])
         duration = (end - start).total_seconds()
-        if label == 'Work' and prev and prev['type'] == 'Work':
-            gap = (start - prev['end']).total_seconds()
-            if gap >= 0 and gap < 120:  # merge if less than 2 min gap
-                prev['end'] = end
-                prev['duration'] = (prev['end'] - prev['start']).total_seconds()
-                prev['indices'].append(row['index'])
-                continue
-        if prev:
-            if prev['duration'] >= min_duration:
-                merged.append(prev)
-        prev = {
-            'type': label,
-            'start': start,
-            'end': end,
-            'duration': duration,
-            'indices': [row['index']],
-            'start_time': row['Start Time'],
-            'end_time': row['End Time'],
-            'raw_duration': row['Duration'],
-            'idx': row['index']
-        }
-    if prev and prev['duration'] >= min_duration:
-        merged.append(prev)
+        if category == 'meal':
+            # Close current work block if open
+            if work_block:
+                if work_block['duration'] >= min_duration:
+                    merged.append(work_block)
+                work_block = None
+            # Add meal as its own block
+            merged.append({
+                'type': 'Meal',
+                'start': start,
+                'end': end,
+                'duration': str(pd.to_timedelta(duration, unit='s')),
+                'indices': [row['index']],
+                'start_time': row['Start Time'],
+                'end_time': row['End Time'],
+                'raw_duration': row['Duration'],
+                'idx': row['index']
+            })
+        else:
+            # For any non-meal (work, idle, other), merge into work block
+            if work_block is None:
+                work_block = {
+                    'type': 'Work',
+                    'start': start,
+                    'end': end,
+                    'duration': duration,
+                    'indices': [row['index']],
+                    'start_time': row['Start Time'],
+                    'end_time': row['End Time'],
+                    'raw_duration': row['Duration'],
+                    'idx': row['index']
+                }
+            else:
+                work_block['end'] = end
+                work_block['duration'] += duration
+                work_block['indices'].append(row['index'])
+                work_block['end_time'] = row['End Time']
+                work_block['raw_duration'] = row['Duration']
+                work_block['idx'] = row['index']
+    if work_block and work_block['duration'] >= min_duration:
+        merged.append(work_block)
     # Format for frontend
     for r in merged:
-        r['duration'] = str(pd.to_timedelta(r['duration'], unit='s'))
+        if isinstance(r['duration'], (int, float)):
+            r['duration'] = str(pd.to_timedelta(r['duration'], unit='s'))
     return jsonify(merged)
 
 if __name__ == "__main__":

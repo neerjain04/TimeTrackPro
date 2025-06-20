@@ -12,15 +12,15 @@ import {
 } from "recharts";
 import "../global.css";
 
-export default function CategoryChart() {
+export default function CategoryChart({ date }) {
   const [data, setData] = useState([]);
 
   useEffect(() => {
     axios
-      .get("http://localhost:5000/api/usage")
+      .get(`http://localhost:5000/api/usage?date=${date}`)
       .then((response) => setData(response.data))
       .catch((error) => console.error("Chart API Error:", error));
-  }, []);
+  }, [date]);
 
   return (
     <div className="dashboard-card">

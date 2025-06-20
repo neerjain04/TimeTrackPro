@@ -1,7 +1,4 @@
 @echo off
-REM Sync usage_log.csv to labeled_log.csv with categories
-cd backend
-..\venv\Scripts\activate && python categorizer.py
-cd ..
-echo Labeled log updated.
+REM No longer needed. All logging and categorization is now real time in labeled_log.csv.
+echo No sync needed.
 pause

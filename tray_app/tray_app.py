@@ -69,19 +69,6 @@ def stop_tracking():
         tracker_process.wait(timeout=5)
         tracker_process = None
         print("🛑 Tracking stopped.")
-        # Wait to ensure tracker flushes to usage_log.csv
-        time.sleep(1)
-        try:
-            project_root = get_project_root()
-            venv_python = os.path.join(project_root, 'venv', 'Scripts', 'python.exe')
-            categorizer_path = os.path.abspath(os.path.join(project_root, 'backend', 'categorizer.py'))
-            print(f"[DEBUG] Running categorizer: {venv_python} {categorizer_path} (cwd={project_root})")
-            result = subprocess.run([venv_python, categorizer_path], cwd=project_root, capture_output=True, text=True)
-            print(f"[DEBUG] Categorizer stdout:\n{result.stdout}")
-            print(f"[DEBUG] Categorizer stderr:\n{result.stderr}")
-            print("🔄 usage_log.csv synced to labeled_log.csv.")
-        except Exception as e:
-            print(f"❌ Failed to sync logs: {e}")
     else:
         print("Tracker is not running.")
 

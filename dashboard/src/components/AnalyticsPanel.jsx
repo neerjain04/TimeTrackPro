@@ -3,13 +3,13 @@ import axios from "axios";
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import "../global.css";
 
-export default function AnalyticsPanel() {
+export default function AnalyticsPanel({ date }) {
   const [logs, setLogs] = useState([]);
   useEffect(() => {
-    axios.get("http://localhost:5000/api/data")
+    axios.get(`http://localhost:5000/api/data?date=${date}`)
       .then(res => setLogs(res.data))
       .catch(() => setLogs([]));
-  }, []);
+  }, [date]);
 
   // Analytics calculations
   const totalHours = logs.reduce((sum, l) => {
@@ -68,7 +68,7 @@ export default function AnalyticsPanel() {
         <div className="metric-value">{last}</div>
         <div className="analytics-spark">
           <ResponsiveContainer width="100%" height={60}>
-            <BarChart data={sessionDurations} margin={{ left: -20, right: 0, top: 0, bottom: 0 }}>
+            <BarChart data={sessionDurations} margin={{ left: 20, right: 20, top: 0, bottom: 0 }}>
               <XAxis dataKey="name" hide />
               <Tooltip formatter={v => `${v.toFixed(1)} min`} />
               <Bar dataKey="value" fill="#ec1c24" radius={[4, 4, 0, 0]} barSize={12} />

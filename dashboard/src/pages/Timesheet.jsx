@@ -91,7 +91,7 @@ export default function Timesheet() {
   const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/timesheet?date=${date}`)
+    fetch(`/api/timesheet_raw?date=${date}`)
       .then(res => res.json())
       .then(data => setSessions(data))
       .catch(() => setError("Failed to fetch timesheet data"));

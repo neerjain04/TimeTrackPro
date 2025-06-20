@@ -1,5 +1,10 @@
 import sys, os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+print(f"[DEBUG] tracker.py started. CWD: {os.getcwd()}")
+# Always resolve project root, regardless of CWD
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+labeled_abs = os.path.join(project_root, "data", "labeled_log.csv")
+print(f"[DEBUG] Absolute path to labeled_log.csv: {labeled_abs}")
+sys.path.append(project_root)
 
 # This script tracks the active window and process on a Windows machine and logs the usage data to a CSV file.
 # It captures the window title, process name, and duration of usage for each active window.
@@ -38,13 +43,12 @@ def track_active_window():
     short_idle_threshold = 5
     meal_idle_duration = 1800  # 30 minutes
 
-    file_path = os.path.join("data", "usage_log.csv")
-    os.makedirs("data", exist_ok=True)
-
-    if not os.path.exists(file_path):
-        with open(file_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerow(["Start Time", "End Time", "Duration", "Window Title", "Process Name"])
+    labeled_path = labeled_abs
+    os.makedirs(os.path.dirname(labeled_path), exist_ok=True)
+    if not os.path.exists(labeled_path):
+        with open(labeled_path, "w", newline="", encoding="utf-8") as lf:
+            writer = csv.writer(lf)
+            writer.writerow(["Start Time", "End Time", "Duration", "Category", "Window Title", "Process Name"])
 
     print("Tracking started. Press Ctrl+C to stop.")
 
@@ -65,14 +69,14 @@ def track_active_window():
                     idle_duration = datetime.now() - idle_start_time
                     if idle_duration.total_seconds() >= meal_idle_duration:
                         category = "Meal" if 11 <= idle_start_time.hour <= 14 else "Idle"
-                        log_session(idle_start_time, datetime.now(), category, category, file_path)
+                        log_session(idle_start_time, datetime.now(), category, category, labeled_path)
                     idle_start_time = None  # Reset after handling
 
             # Active window tracking (only when not idle)
             if not is_idle and (current_window != last_window or current_process != last_process):
                 end_time = datetime.now()
                 if last_window:
-                    log_session(start_time, end_time, last_window, last_process, file_path)
+                    log_session(start_time, end_time, last_window, last_process, labeled_path)
                 last_window = current_window
                 last_process = current_process
                 start_time = datetime.now()
@@ -84,22 +88,35 @@ def track_active_window():
         print("Tracking stopped.")
         end_time = datetime.now()
         if last_window:
-            log_session(start_time, end_time, last_window, last_process, file_path)
+            log_session(start_time, end_time, last_window, last_process, labeled_path)
 
 
-# This function logs the session data to a CSV file.
-# It records the start time, end time, duration, window title, and process name.
-def log_session(start_time, end_time, window_title, process_name, file_path):
+# This function logs the session data to labeled_log.csv only.
+def log_session(start_time, end_time, window_title, process_name, labeled_path):
     duration = end_time - start_time
-    with open(file_path, "a", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow([
-            start_time.strftime("%Y-%m-%d %H:%M:%S"),
-            end_time.strftime("%Y-%m-%d %H:%M:%S"),
-            str(duration).split('.')[0],
-            window_title,
-            process_name
-        ])
+    try:
+        import json
+        print(f"[DEBUG] log_session called: {start_time} - {end_time}, window: {window_title}, process: {process_name}, file: {labeled_path}")
+        category_map = {}
+        with open(os.path.join(os.path.dirname(__file__), "..", "app_categories.json"), "r", encoding="utf-8") as catf:
+            category_map = json.load(catf)
+        file_exists = os.path.exists(labeled_path)
+        with open(labeled_path, "a", newline="", encoding="utf-8") as lf:
+            writer = csv.writer(lf)
+            if not file_exists:
+                writer.writerow(["Start Time", "End Time", "Duration", "Category", "Window Title", "Process Name"])
+            category = category_map.get(process_name, "other")
+            print(f"[DEBUG] Writing row: {start_time.strftime('%Y-%m-%d %H:%M:%S')}, {end_time.strftime('%Y-%m-%d %H:%M:%S')}, {str(duration).split('.')[0]}, {category}, {window_title}, {process_name}")
+            writer.writerow([
+                start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                end_time.strftime("%Y-%m-%d %H:%M:%S"),
+                str(duration).split('.')[0],
+                category,
+                window_title,
+                process_name
+            ])
+    except Exception as e:
+        print(f"[log_session] Could not update labeled_log.csv: {e}")
 
 if __name__ == "__main__":
     track_active_window()

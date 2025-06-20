@@ -3,15 +3,15 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "../global.css";
 
-function DataTable() {
+function DataTable({ date }) {
   const [logs, setLogs] = useState([]);
 
   useEffect(() => {
     axios
-      .get("http://localhost:5000/api/data")
+      .get(`http://localhost:5000/api/data?date=${date}`)
       .then((response) => setLogs(response.data))
       .catch((error) => console.error("Error fetching data:", error));
-  }, []);
+  }, [date]);
 
   return (
     <div className="dashboard-card">
