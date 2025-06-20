@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
+import "../global.css";
 
 export default function CategoryChart() {
   const [data, setData] = useState([]);
@@ -22,10 +23,8 @@ export default function CategoryChart() {
   }, []);
 
   return (
-    <div className="bg-white shadow-md rounded-2xl p-6 border border-gray-200">
-      <h2 className="text-xl font-semibold text-gray-800 mb-4 tracking-tight">
-        Time Spent by Category
-      </h2>
+    <div className="dashboard-card">
+      <h2 className="dashboard-title">Time Spent by Category</h2>
       <ResponsiveContainer width="100%" height={320}>
         <BarChart data={data} barSize={40}>
           <CartesianGrid strokeDasharray="3 3" />

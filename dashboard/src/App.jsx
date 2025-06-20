@@ -8,16 +8,12 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-white text-gray-900 font-sans">
+      <div>
         {/* Top Nav */}
-        <nav className="bg-[#ec1c24]">
-          <div className="max-w-7xl mx-auto px-6 py-4 flex items-center">
-            <span className="text-white text-2xl font-bold tracking-tight font-sans">TimeTrackPro</span>
-          </div>
-        </nav>
+        <div className="header-bar">TimeTrackPro</div>
         <Routes>
           <Route path="/" element={
-            <main className="w-full max-w-7xl mx-auto px-6 py-12 space-y-12">
+            <main className="dashboard-main">
               <section>
                 <CategoryChart />
               </section>
@@ -29,7 +25,7 @@ function App() {
           <Route path="/timesheet" element={<Timesheet />} />
         </Routes>
         {/* Footer */}
-        <footer className="bg-gray-100 text-gray-500 text-center text-sm py-4">
+        <footer className="dashboard-footer">
           © 2025 TimeTrackPro
         </footer>
       </div>

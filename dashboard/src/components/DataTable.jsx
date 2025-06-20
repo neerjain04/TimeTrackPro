@@ -1,6 +1,7 @@
 // src/components/DataTable.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import "../global.css";
 
 function DataTable() {
   const [logs, setLogs] = useState([]);
@@ -13,32 +14,27 @@ function DataTable() {
   }, []);
 
   return (
-    <div className="bg-white shadow-md rounded-2xl border border-gray-200 p-6">
-      <h2 className="text-xl font-semibold text-gray-800 mb-4 tracking-tight">
-        App Usage Log
-      </h2>
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 text-sm text-gray-700">
-          <thead className="bg-gray-50 text-left text-gray-600 font-semibold uppercase text-xs">
+    <div className="dashboard-card">
+      <h2 className="dashboard-title">App Usage Log</h2>
+      <div style={{ overflowX: "auto" }}>
+        <table className="dashboard-table">
+          <thead>
             <tr>
-              <th className="px-4 py-2">Start Time</th>
-              <th className="px-4 py-2">End Time</th>
-              <th className="px-4 py-2">Duration</th>
-              <th className="px-4 py-2">Window Title</th>
-              <th className="px-4 py-2">Category</th>
+              <th>Start Time</th>
+              <th>End Time</th>
+              <th>Duration</th>
+              <th>Window Title</th>
+              <th>Category</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody>
             {logs.map((log, index) => (
-              <tr
-                key={index}
-                className="hover:bg-gray-50 transition duration-150 ease-in-out"
-              >
-                <td className="px-4 py-2 whitespace-nowrap">{log["Start Time"]}</td>
-                <td className="px-4 py-2 whitespace-nowrap">{log["End Time"]}</td>
-                <td className="px-4 py-2 whitespace-nowrap">{log["Duration"]}</td>
-                <td className="px-4 py-2">{log["Window Title"]}</td>
-                <td className="px-4 py-2 font-medium">{log["Category"]}</td>
+              <tr key={index}>
+                <td>{log["Start Time"]}</td>
+                <td>{log["End Time"]}</td>
+                <td>{log["Duration"]}</td>
+                <td>{log["Window Title"]}</td>
+                <td>{log["Category"]}</td>
               </tr>
             ))}
           </tbody>
