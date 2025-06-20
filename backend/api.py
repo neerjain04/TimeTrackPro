@@ -1,7 +1,11 @@
 import os
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import pandas as pd
 from flask_cors import CORS
+import subprocess
+import sys
+import psutil
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS so React can access this API
@@ -41,17 +45,26 @@ def get_usage():
 
 @app.route("/api/timesheet")
 def get_timesheet():
-    path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "labeled_log.csv"))
+    # Accept ?date=YYYY-MM-DD, default to today
+    date_str = request.args.get('date')
+    if not date_str:
+        date_str = datetime.now().strftime('%Y-%m-%d')
+    path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", f"labeled_log_{date_str}.csv"))
+    if not os.path.exists(path):
+        # fallback to old file for today only
+        if date_str == datetime.now().strftime('%Y-%m-%d'):
+            path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "labeled_log.csv"))
     sessions = []
     if not os.path.exists(path):
         return jsonify([])
     df = pd.read_csv(path)
-    # Group consecutive 'Work' sessions
+    # Group consecutive 'Work' sessions, track indices
     grouped = []
     prev_type = None
     group_start = None
     group_end = None
     group_duration = pd.Timedelta(0)
+    group_indices = []
     for idx, row in df.iterrows():
         label = 'Meal' if str(row.get('Category', '')).lower() == 'meal' else 'Work'
         start = row['Start Time']
@@ -59,75 +72,163 @@ def get_timesheet():
         duration = pd.to_timedelta(row['Duration']) if 'Duration' in row else pd.Timedelta(0)
         if label == 'Work':
             if prev_type == 'Work' and group_end == start:
-                # Extend current group
                 group_end = end
                 group_duration += duration
+                group_indices.append(idx)
             else:
-                # Save previous group
                 if prev_type == 'Work':
                     grouped.append({
                         'type': 'Work',
                         'start_time': group_start,
                         'end_time': group_end,
-                        'duration': str(group_duration)
+                        'duration': str(group_duration),
+                        'indices': group_indices.copy()
                     })
-                # Start new group
                 group_start = start
                 group_end = end
                 group_duration = duration
+                group_indices = [idx]
             prev_type = 'Work'
         else:
-            # Save previous work group
             if prev_type == 'Work':
                 grouped.append({
                     'type': 'Work',
                     'start_time': group_start,
                     'end_time': group_end,
-                    'duration': str(group_duration)
+                    'duration': str(group_duration),
+                    'indices': group_indices.copy()
                 })
-            # Add meal as its own session
             grouped.append({
                 'type': 'Meal',
                 'start_time': start,
                 'end_time': end,
-                'duration': str(duration)
+                'duration': str(duration),
+                'indices': [idx]
             })
             prev_type = 'Meal'
             group_start = None
             group_end = None
             group_duration = pd.Timedelta(0)
-    # Save last group if needed
+            group_indices = []
     if prev_type == 'Work':
         grouped.append({
             'type': 'Work',
             'start_time': group_start,
             'end_time': group_end,
-            'duration': str(group_duration)
+            'duration': str(group_duration),
+            'indices': group_indices.copy()
         })
     return jsonify(grouped)
 
 @app.route("/api/timesheet/edit", methods=["POST"])
 def edit_timesheet():
-    from flask import request
     data = request.json
-    idx = data.get('idx')
+    indices = data.get('indices', [])
     start_time = data.get('start_time')
     end_time = data.get('end_time')
-    path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "labeled_log.csv"))
+    new_type = data.get('type')
+    date_str = data.get('date')
+    if not date_str:
+        date_str = datetime.now().strftime('%Y-%m-%d')
+    path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", f"labeled_log_{date_str}.csv"))
+    if not os.path.exists(path):
+        # fallback to old file for today only
+        if date_str == datetime.now().strftime('%Y-%m-%d'):
+            path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "labeled_log.csv"))
+    if not os.path.exists(path):
+        return jsonify({'success': False, 'error': 'File not found'})
     df = pd.read_csv(path)
-    if 0 <= idx < len(df):
-        df.at[idx, 'Start Time'] = start_time
-        df.at[idx, 'End Time'] = end_time
-        # Update duration
-        try:
-            dt1 = pd.to_datetime(start_time)
-            dt2 = pd.to_datetime(end_time)
-            df.at[idx, 'Duration'] = str(dt2 - dt1)
-        except Exception:
-            pass
+    updated = False
+    for idx in indices:
+        if 0 <= idx < len(df):
+            df.at[idx, 'Start Time'] = start_time
+            df.at[idx, 'End Time'] = end_time
+            if new_type:
+                df.at[idx, 'Category'] = new_type
+            # Update duration
+            try:
+                dt1 = pd.to_datetime(start_time)
+                dt2 = pd.to_datetime(end_time)
+                df.at[idx, 'Duration'] = str(dt2 - dt1)
+            except Exception:
+                pass
+            updated = True
+    if updated:
         df.to_csv(path, index=False)
         return jsonify({'success': True})
-    return jsonify({'success': False, 'error': 'Invalid index'})
+    return jsonify({'success': False, 'error': 'Invalid indices'})
+
+@app.route("/api/tracking/start", methods=["POST"])
+def api_start_tracking():
+    try:
+        # Call the tray app's start_tracking logic via a subprocess or IPC
+        # For now, call tracker.py directly (assumes backend has permissions)
+        tracker_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend", "tracker.py"))
+        python_exec = sys.executable
+        subprocess.Popen([python_exec, tracker_path])
+        return jsonify({"success": True, "message": "Tracking started"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/api/tracking/stop", methods=["POST"])
+def api_stop_tracking():
+    try:
+        # Find and terminate tracker.py process (simple version)
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+            if proc.info['cmdline'] and 'tracker.py' in proc.info['cmdline']:
+                proc.terminate()
+        return jsonify({"success": True, "message": "Tracking stopped"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/api/timesheet_raw")
+def get_timesheet_raw():
+    date_str = request.args.get('date')
+    min_duration = int(request.args.get('min_duration', 0))  # seconds
+    if not date_str:
+        date_str = datetime.now().strftime('%Y-%m-%d')
+    path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", f"labeled_log_{date_str}.csv"))
+    if not os.path.exists(path):
+        if date_str == datetime.now().strftime('%Y-%m-%d'):
+            path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "labeled_log.csv"))
+    if not os.path.exists(path):
+        return jsonify([])
+    df = pd.read_csv(path)
+    # Merge consecutive 'Work' rows if gap < 2 min, and filter out short sessions
+    merged = []
+    prev = None
+    for idx, row in df.reset_index().iterrows():
+        label = 'Meal' if str(row.get('Category', '')).lower() == 'meal' else 'Work'
+        start = pd.to_datetime(row['Start Time'])
+        end = pd.to_datetime(row['End Time'])
+        duration = (end - start).total_seconds()
+        if label == 'Work' and prev and prev['type'] == 'Work':
+            gap = (start - prev['end']).total_seconds()
+            if gap >= 0 and gap < 120:  # merge if less than 2 min gap
+                prev['end'] = end
+                prev['duration'] = (prev['end'] - prev['start']).total_seconds()
+                prev['indices'].append(row['index'])
+                continue
+        if prev:
+            if prev['duration'] >= min_duration:
+                merged.append(prev)
+        prev = {
+            'type': label,
+            'start': start,
+            'end': end,
+            'duration': duration,
+            'indices': [row['index']],
+            'start_time': row['Start Time'],
+            'end_time': row['End Time'],
+            'raw_duration': row['Duration'],
+            'idx': row['index']
+        }
+    if prev and prev['duration'] >= min_duration:
+        merged.append(prev)
+    # Format for frontend
+    for r in merged:
+        r['duration'] = str(pd.to_timedelta(r['duration'], unit='s'))
+    return jsonify(merged)
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)

@@ -109,12 +109,38 @@ body {
   background: #b71c1c;
 }
 
+.button-wide {
+  min-width: 170px;
+  padding-left: 2.2rem;
+  padding-right: 2.2rem;
+}
+
 .dashboard-main {
-  max-width: 1100px;
+  max-width: 1600px;
   margin: 2rem auto;
+  padding: 0 2rem;
   display: flex;
   flex-direction: column;
   gap: 2.5rem;
+}
+
+.dashboard-flex-row {
+  display: flex;
+  flex-direction: row;
+  gap: 3.5rem;
+  align-items: flex-start;
+}
+.dashboard-main-left {
+  flex: 2 1 0;
+  min-width: 600px;
+}
+.dashboard-analytics-right {
+  flex: 1 1 0;
+  min-width: 320px;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .dashboard-card {
@@ -162,4 +188,171 @@ body {
   font-size: 0.95rem;
   padding: 1.5rem 0 1.2rem 0;
   margin-top: 2rem;
+}
+
+.modal-backdrop {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(44, 44, 44, 0.25);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal {
+  background: #fff;
+  border-radius: 1.2rem;
+  box-shadow: 0 8px 32px 0 rgba(236,28,36,0.18);
+  padding: 2.5rem 2.5rem 2rem 2.5rem;
+  min-width: 340px;
+  max-width: 95vw;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  border: 1.5px solid #ec1c24;
+}
+.modal h3 {
+  color: #ec1c24;
+  font-size: 1.3rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+.modal label {
+  display: flex;
+  flex-direction: column;
+  color: #444;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  gap: 0.3rem;
+}
+.modal input, .modal select {
+  padding: 0.6rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+  margin-top: 0.2rem;
+}
+.modal button.button-primary {
+  min-width: 90px;
+  font-size: 1rem;
+  margin-top: 0.5rem;
+}
+
+.summary-card {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  padding: 2rem 1.5rem 1.5rem 1.5rem;
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.summary-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.summary-hours-large {
+  color: #ec1c24;
+  font-size: 2.8rem;
+  font-weight: bold;
+  line-height: 1.1;
+}
+.summary-hrs-label {
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: #ec1c24;
+  margin-left: 0.2rem;
+}
+.summary-info-large {
+  color: #555;
+  font-size: 1.1rem;
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+.summary-analytics-row {
+  display: flex;
+  flex-direction: row;
+  gap: 2.5rem;
+  margin-bottom: 2rem;
+  align-items: stretch;
+}
+.summary-left {
+  flex: 1 1 0;
+  min-width: 270px;
+  max-width: 350px;
+}
+.summary-right {
+  flex: 2 1 0;
+  min-width: 270px;
+}
+.analytics-card {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  padding: 2rem 1.5rem 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  margin-bottom: 2rem;
+}
+.analytics-title {
+  color: #ec1c24;
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+.analytics-item {
+  font-size: 1rem;
+  color: #333;
+  margin-bottom: 0.7rem;
+}
+.analytics-pie {
+  width: 100%;
+  max-width: 320px;
+  margin: 1.5rem auto 1rem auto;
+}
+.analytics-metric-card {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  padding: 1.2rem 1.2rem 1.2rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+.analytics-metric-group {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  padding: 1.2rem 1.2rem 1.2rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+.metric-label {
+  color: #ec1c24;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+.metric-value {
+  color: #222;
+  font-size: 1.3rem;
+  font-weight: bold;
+  margin-bottom: 0.7rem;
+}
+.metric-divider {
+  width: 100%;
+  border-bottom: 1px solid #eee;
+  margin: 0.5rem 0 0.7rem 0;
+}
+.analytics-spark {
+  width: 100%;
+  height: 60px;
+  margin-top: 1.2rem;
 }
